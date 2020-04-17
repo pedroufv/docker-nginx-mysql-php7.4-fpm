@@ -1,0 +1,62 @@
+version: '3.7'
+services:
+  app:
+    build:
+      context: ./docker/php
+      args:
+        uid: ${DOCKER_UID}
+    restart: always
+    depends_on:
+      - db
+    volumes:
+      - ./:/var/www
+      - ./docker/php/conf.d:/usr/local/etc/php
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
+    ports:
+      - 80:80
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    depends_on:
+      - db
+    ports:
+      - 81:80
+    environment:
+      - PMA_ARBITRARY=1
+
+  db:
+    image: mysql:latest
+    restart: always
+    volumes:
+      - db:/var/lib/mysql/
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE}
+      - MYSQL_USER=${DB_USERNAME}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    ports:
+      - 3306:3306
+
+  db_testing:
+    image: mysql:latest
+    restart: always
+    env_file:
+      - .env.testing
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE}
+      - MYSQL_USER=${DB_USERNAME}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    ports:
+      - 3307:3306
+
+volumes:
+  db:
